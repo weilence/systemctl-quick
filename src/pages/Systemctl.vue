@@ -201,9 +201,7 @@ async function handleChange(options: { file: UploadFileInfo }) {
       <n-form-item label="After" path="unit.after">
         <n-select
           v-model:value="formValue.unit.after"
-          filterable
-          multiple
-          tag
+          filterable tag multiple
           :options="preDefinedTarget"
           placeholder="Please Select or Input"
         />
@@ -233,8 +231,7 @@ async function handleChange(options: { file: UploadFileInfo }) {
         />
       </n-form-item>
       <table
-        w-full
-        relative
+        relative w-full
         top="-5"
         class="table"
         summary="Exit causes and the effect of the Restart= settings"
