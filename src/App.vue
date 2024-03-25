@@ -10,8 +10,7 @@ const route = useRoute()
       <main font-sans>
         <n-layout>
           <n-layout-header>
-            <div flex>
-              <div flex-1 />
+            <n-flex :size="0">
               <router-link to="/systemctl">
                 <div hover:bg="blue-500" cursor-pointer px-6 py-3 text-lg :class="{ 'bg-blue-500/80': route.path === '/systemctl' }">
                   <span>SystemCtl</span>
@@ -22,7 +21,7 @@ const route = useRoute()
                   <span>Nginx</span>
                 </div>
               </router-link>
-            </div>
+            </n-flex>
           </n-layout-header>
           <n-layout-content>
             <div bg="gray-500/15" p-6>
