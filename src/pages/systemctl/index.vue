@@ -1,13 +1,11 @@
 <script lang="ts" setup>
-import type { FormInst, UploadFileInfo } from 'naive-ui'
-import { useMessage } from 'naive-ui'
+import type { UploadFileInfo } from 'naive-ui'
 import { generate, merge, parse } from './utils'
 import Preview from './components/Preview.vue'
 import SectionService from './components/SectionService.vue'
 import SectionUnit from './components/SectionUnit.vue'
 import SectionInstall from './components/SectionInstall.vue'
 
-const form = ref<FormInst | null>(null)
 const formValue = ref<any>({
   name: '',
   unit: {
@@ -66,7 +64,7 @@ async function handleChange(options: { file: UploadFileInfo }) {
   <div class="m-auto w-300">
     <n-grid x-gap="24" :cols="2">
       <n-gi>
-        <n-form ref="form" :label-width="120" label-placement="left" :model="formValue" :rules="rules">
+        <n-form :label-width="120" label-placement="left" :model="formValue" :rules="rules">
           <n-form-item label="Service Name" path="name">
             <n-input v-model:value="formValue.name" />
             <div class="ml-2">
@@ -88,6 +86,15 @@ async function handleChange(options: { file: UploadFileInfo }) {
     </n-grid>
   </div>
 </template>
+
+<route lang="json">
+{
+  "meta": {
+    "menu": "SystemCtl",
+    "index": 0
+  }
+}
+</route>
 
 <style lang="less" scoped>
 .table {

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { restartTypes } from '../data'
+import { restartTypeOptions } from '../data'
 import RestartTable from './RestartTable.vue'
 
 const data = defineModel<{
@@ -31,7 +31,7 @@ const data = defineModel<{
     </template>
     <n-select
       v-model:value="data.type"
-      :options="restartTypes"
+      :options="restartTypeOptions"
     />
   </n-form-item>
   <n-form-item label="WorkingDirectory" path="service.workingDirectory">
@@ -49,7 +49,9 @@ const data = defineModel<{
         <span>Restart</span>
         <n-popover trigger="hover">
           <template #trigger>
-            <div i-carbon:help-filled />
+            <a href="https://www.freedesktop.org/software/systemd/man/latest/systemd.service.html#Restart=" target="_blank">
+              <div i-carbon:help-filled />
+            </a>
           </template>
           <RestartTable />
         </n-popover>
