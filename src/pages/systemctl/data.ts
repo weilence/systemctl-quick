@@ -1,48 +1,57 @@
-export const restartTableColumns = [
-  { title: 'Restart settings/Exit causes', key: 'type' },
-  { title: 'no', key: 'no' },
-  { title: 'always', key: 'always' },
-  { title: 'on-success', key: 'on-success' },
-  { title: 'on-failure', key: 'on-failure' },
-  { title: 'on-abnormal', key: 'on-abnormal' },
-  { title: 'on-abort', key: 'on-abort' },
-  { title: 'on-watchdog', key: 'on-watchdog' },
+import type { DataTableColumn, DataTableColumns } from 'naive-ui'
+
+interface CellData {
+  'type': string
+  'no'?: string
+  'always'?: string
+  'on-success'?: string
+  'on-failure'?: string
+  'on-abnormal'?: string
+  'on-abort'?: string
+  'on-watchdog'?: string
+}
+
+const restartTypes = ['no', 'always', 'on-success', 'on-failure', 'on-abnormal', 'on-abort', 'on-watchdog']
+
+export const restartTypeOptions = restartTypes.map(item => ({ label: item, value: item }))
+
+export const restartTableColumns: DataTableColumns<CellData> = [
+  { title: 'Restart settings/Exit causes', key: 'type', align: 'center' },
+  ...restartTypes.map(item => ({ title: item, key: item, align: 'center' } as DataTableColumn<CellData>)),
 ]
 
-export const restartTableData = [
+export const restartTableData: CellData[] = [
   {
     'type': 'Clean exit code or signal',
-    'always': 'X',
-    'on-success': 'X',
+    'always': '✔',
+    'on-success': '✔',
   },
   {
     'type': 'Unclean exit code',
-    'always': 'X',
-    'on-failure': 'X',
+    'always': '✔',
+    'on-failure': '✔',
   },
   {
     'type': 'Unclean signal',
-    'always': 'X',
-    'on-failure': 'X',
-    'on-abnormal': 'X',
-    'on-abort': 'X',
+    'always': '✔',
+    'on-failure': '✔',
+    'on-abnormal': '✔',
+    'on-abort': '✔',
   },
   {
     'type': 'Timeout',
-    'always': 'X',
-    'on-failure': 'X',
-    'on-abnormal': 'X',
+    'always': '✔',
+    'on-failure': '✔',
+    'on-abnormal': '✔',
   },
   {
     'type': 'Watchdog',
-    'always': 'X',
-    'on-failure': 'X',
-    'on-abnormal': 'X',
-    'on-watchdog': 'X',
+    'always': '✔',
+    'on-failure': '✔',
+    'on-abnormal': '✔',
+    'on-watchdog': '✔',
   },
 ]
-
-export const restartTypes = restartTableColumns.slice(1).map(item => ({ label: item.key, value: item.key }))
 
 const targetList = [
   'network.target',

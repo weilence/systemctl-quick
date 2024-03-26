@@ -2,6 +2,9 @@
 import { darkTheme } from 'naive-ui'
 
 const route = useRoute()
+
+const router = useRouter()
+const routes = router.getRoutes().filter(m => m.meta?.menu).sort((a, b) => a.meta.index! - b.meta.index!)
 </script>
 
 <template>
@@ -11,14 +14,9 @@ const route = useRoute()
         <n-layout>
           <n-layout-header>
             <n-flex :size="0">
-              <router-link to="/systemctl">
-                <div hover:bg="blue-500" cursor-pointer px-6 py-3 text-lg :class="{ 'bg-blue-500/80': route.path === '/systemctl' }">
-                  <span>SystemCtl</span>
-                </div>
-              </router-link>
-              <router-link to="/nginx">
-                <div hover:bg="blue-500" cursor-pointer px-6 py-3 text-lg :class="{ 'bg-blue-500/80': route.path === '/nginx' }">
-                  <span>Nginx</span>
+              <router-link v-for="r of routes" :key="r.name" :to="r.path">
+                <div hover:bg="blue-500" cursor-pointer px-6 py-3 text-lg :class="{ 'bg-blue-500/80': route.path === r.path }">
+                  <span>{{ r.meta.menu }}</span>
                 </div>
               </router-link>
             </n-flex>

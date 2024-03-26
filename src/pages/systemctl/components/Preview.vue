@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import { useMessage } from 'naive-ui'
-
 const props = defineProps<{
   data: string
 }>()
