@@ -1,11 +1,19 @@
 <script setup lang="ts">
 const data = ref({
   length: 20,
-  type: ['numbers', 'lowercase', 'uppercase'],
+  types: ['numbers', 'lowercase', 'uppercase'],
   password: '',
 })
 
+const message = useMessage()
+
 function generatePassword() {
+  if (data.value.types.length === 0) {
+    message.error('Please select at least one type')
+    data.value.password = ''
+    return
+  }
+
   const numbers = '0123456789'
   const lowercase = 'abcdefghijklmnopqrstuvwxyz'
   const uppercase = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
@@ -18,7 +26,7 @@ function generatePassword() {
   }
 
   let pool = ''
-  for (const type of data.value.type)
+  for (const type of data.value.types)
     pool += types[type]
 
   let password = ''
@@ -27,8 +35,6 @@ function generatePassword() {
 
   data.value.password = password
 }
-
-const message = useMessage()
 
 function copy() {
   navigator.clipboard.writeText(data.value.password)
@@ -55,7 +61,7 @@ generatePassword()
     </n-flex>
     <n-flex flex="1" align="center">
       <n-slider v-model:value="data.length" class="flex-1" :min="8" :max="100" :step="1" @update:value="generatePassword()" />
-      <n-checkbox-group v-model:value="data.type" class="flex-1" @update:value="generatePassword()">
+      <n-checkbox-group v-model:value="data.types" class="flex-1" @update:value="generatePassword()">
         <n-checkbox value="numbers">
           Numbers
         </n-checkbox>
