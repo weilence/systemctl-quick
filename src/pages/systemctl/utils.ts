@@ -20,7 +20,9 @@ export function generate(data: object) {
         service += `${upperFirst(key)}=${generateValue(value)}\n`
       }
     }
-    service += '\n'
+
+    if (section !== 'install')
+      service += '\n'
   }
   return service
 }

@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import { useMessage } from 'naive-ui'
+import { ref } from 'vue'
+
 const data = ref({
   length: 20,
   types: ['numbers', 'lowercase', 'uppercase'],
@@ -45,23 +48,23 @@ generatePassword()
 </script>
 
 <template>
-  <n-flex class="m-auto w-100" vertical>
-    <n-flex justify="center">
+  <div class="m-auto max-w-120 flex flex-col gap-4" vertical>
+    <div class="flex justify-center">
       <n-text class="font-bord break-all text-2xl font-mono">
         {{ data.password }}
       </n-text>
-    </n-flex>
-    <n-flex justify="center">
+    </div>
+    <div class="flex justify-center gap-4">
       <n-button type="primary" @click="generatePassword()">
         Generate
       </n-button>
       <n-button type="primary" @click="copy()">
         Copy
       </n-button>
-    </n-flex>
-    <n-flex flex="1" align="center">
-      <n-slider v-model:value="data.length" class="flex-1" :min="8" :max="100" :step="1" @update:value="generatePassword()" />
-      <n-checkbox-group v-model:value="data.types" class="flex-1" @update:value="generatePassword()">
+    </div>
+    <div class="flex flex-wrap items-center gap-2 md:flex-nowrap">
+      <n-slider v-model:value="data.length" :min="8" :max="100" :step="1" @update:value="generatePassword()" />
+      <n-checkbox-group v-model:value="data.types" @update:value="generatePassword()">
         <n-checkbox value="numbers">
           Numbers
         </n-checkbox>
@@ -75,13 +78,13 @@ generatePassword()
           Symbols
         </n-checkbox>
       </n-checkbox-group>
-    </n-flex>
-    <n-flex justify="center">
+    </div>
+    <div class="flex justify-center">
       <span class="text-gray-500/80">
         Inspired by <a href="https://1password.com/password-generator/" target="_blank">1password.com</a>
       </span>
-    </n-flex>
-  </n-flex>
+    </div>
+  </div>
 </template>
 
 <route lang="json">

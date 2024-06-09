@@ -9,7 +9,6 @@ import VueJsx from '@vitejs/plugin-vue-jsx'
 import VueRouter from 'unplugin-vue-router/vite'
 import Components from 'unplugin-vue-components/vite'
 import { NaiveUiResolver } from 'unplugin-vue-components/resolvers'
-import AutoImport from 'unplugin-auto-import/vite'
 import Unocss from 'unocss/vite'
 
 export default defineConfig({
@@ -27,34 +26,6 @@ export default defineConfig({
     Vue(),
 
     VueJsx(),
-
-    // https://github.com/antfu/unplugin-auto-import
-    AutoImport({
-      imports: [
-        'vue',
-        {
-          'vue-router/auto': [
-            'useRouter',
-            'useRoute',
-            'useLink',
-            'onBeforeRouteLeave',
-            'onBeforeRouteUpdate',
-          ],
-        },
-        '@vueuse/core',
-        {
-          'naive-ui': [
-            'useDialog',
-            'useMessage',
-            'useNotification',
-            'useLoadingBar',
-          ],
-        },
-      ],
-      dts: true,
-      dirs: ['./src/composables'],
-      vueTemplate: true,
-    }),
 
     // https://github.com/antfu/vite-plugin-components
     Components({
