@@ -1,5 +1,5 @@
 <template>
-  <h1 text-lg>
+  <h1 class="text-lg">
     WIP
   </h1>
 </template>
