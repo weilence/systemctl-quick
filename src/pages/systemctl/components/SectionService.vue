@@ -14,7 +14,7 @@ const data = defineModel<{
 </script>
 
 <template>
-  <n-h2 mt-0 text-center>
+  <n-h2 class="mt-0 text-center">
     Service
   </n-h2>
   <n-form-item path="service.type">
