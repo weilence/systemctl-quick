@@ -8,7 +8,7 @@ const data = defineModel<{
 </script>
 
 <template>
-  <n-h2 mt-0 text-center>
+  <n-h2 class="mt-0 text-center">
     Install
   </n-h2>
   <n-form-item label="WantedBy" path="install.wantedBy">

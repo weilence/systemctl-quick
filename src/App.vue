@@ -12,23 +12,23 @@ const routes = router.getRoutes().filter(m => m.meta?.menu).sort((a, b) => a.met
 <template>
   <n-config-provider :theme="isDark ? darkTheme : undefined">
     <n-message-provider>
-      <main font-sans>
+      <main>
         <n-layout>
           <n-layout-header>
             <n-flex :size="0">
               <router-link v-for="r of routes" :key="r.name" :to="r.path">
-                <div hover:bg="blue-500" cursor-pointer px-6 py-3 text-lg :class="{ 'bg-blue-500/80': route.path === r.path }">
+                <div class="cursor-pointer px-6 py-3 text-lg hover:bg-blue-500" :class="{ 'bg-blue-500/80': route.path === r.path }">
                   <span>{{ r.meta.menu }}</span>
                 </div>
               </router-link>
             </n-flex>
           </n-layout-header>
           <n-layout-content>
-            <div bg="gray-500/15" p-6>
+            <div class="bg-gray-500/15 p-6">
               <router-view />
             </div>
           </n-layout-content>
-          <n-layout-footer text="center">
+          <n-layout-footer class="text-center">
             <Footer />
           </n-layout-footer>
         </n-layout>

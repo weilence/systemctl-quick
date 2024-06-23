@@ -3,5 +3,12 @@
     "source.fixAll.eslint": "explicit",
     "source.organizeImports": "never"
   },
-  "eslint.experimental.useFlatConfig": true
+  "eslint.useFlatConfig": true,
+  "eslint.format.enable": true,
+  "[vue]": {
+    "editor.defaultFormatter": "dbaeumer.vscode-eslint"
+  },
+  "[typescript]": {
+    "editor.defaultFormatter": "dbaeumer.vscode-eslint"
+  }
 }
