@@ -80,7 +80,7 @@ generatePassword()
       </n-checkbox-group>
     </div>
     <div class="flex justify-center">
-      <span class="text-gray-500/80">
+      <span class="text-gray-500">
         Inspired by <a href="https://1password.com/password-generator/" target="_blank">1password.com</a>
       </span>
     </div>
