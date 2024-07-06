@@ -13,6 +13,7 @@
     "postinstall": "npx simple-git-hooks"
   },
   "dependencies": {
+    "@microsoft/signalr": "^8.0.0",
     "@vueuse/core": "^10.9.0",
     "naive-ui": "^2.38.1",
     "vue": "^3.4.21",
