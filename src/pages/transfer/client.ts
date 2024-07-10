@@ -1,5 +1,5 @@
 import * as signalR from '@microsoft/signalr'
-import type { SettledFileInfo } from 'naive-ui/es/upload/src/interface'
+import type { UploadCustomRequestOptions } from 'naive-ui'
 import { ref } from 'vue'
 
 export class Client {
@@ -14,7 +14,7 @@ export class Client {
     this.connection.on('Connections', (connectionIds: string[]) => {
       this.connectionIds.value = connectionIds.filter(id => id !== this.connection.connectionId)
     })
-    this.connection.on('Answer', async (connectionId: string, offer: RTCSessionDescriptionInit) => {
+    this.connection.on('Connect', async (connectionId: string, offer: RTCSessionDescriptionInit) => {
       let pc = this.peers[connectionId]
       if (!pc) {
         pc = new RTCPeerConnection({
@@ -73,53 +73,66 @@ export class Client {
     await this.connection.stop()
   }
 
-  connect = async (connectionId: string, f: SettledFileInfo) => {
-    if (!f?.file)
-      return false
+  connect(connectionId: string) {
+    let pc = this.peers[connectionId]
+    if (pc)
+      return
 
-    try {
-      const file = f.file
-
-      let pc = this.peers[connectionId]
-      if (!pc) {
-        pc = new RTCPeerConnection({
-          iceServers: [{
-            urls: 'stun:stun.l.google.com:19302',
-          }],
-        })
-
-        pc.addEventListener('icecandidate', async (event) => {
-          if (event.candidate)
-            this.connection.send('IceCandidate', connectionId, event.candidate)
-        })
-        this.peers[connectionId] = pc
-      }
-
-      const channel = pc.createDataChannel(file.name)
-      channel.addEventListener('open', async () => {
-        const writableStream = new WritableStream({
-          write(chunk) {
-            channel.send(chunk)
-          },
-        })
-
-        await file.stream().pipeTo(writableStream)
-        channel.close()
-      })
-
-      if (pc.connectionState === 'connected')
-        return
-
+    pc = new RTCPeerConnection({
+      iceServers: [{
+        urls: 'stun:stun.l.google.com:19302',
+      }],
+    })
+    pc.addEventListener('icecandidate', async (event) => {
+      if (event.candidate)
+        this.connection.send('IceCandidate', connectionId, event.candidate)
+    })
+    pc.addEventListener('negotiationneeded', async () => {
       const offer = await pc.createOffer()
       await pc.setLocalDescription(offer)
 
       const answer = await this.connection.invoke<RTCSessionDescriptionInit>('Connect', connectionId, offer)
       await pc.setRemoteDescription(answer)
-    }
-    catch (e: any) {
-      console.error(e)
+    })
+
+    this.peers[connectionId] = pc
+  }
+
+  upload = (options: UploadCustomRequestOptions) => {
+    const file = options.file.file
+    if (!file) {
+      options.onError()
+      return
     }
 
-    return false
+    const connectionId = (options.data as any).connectionId as string
+    const pc = this.peers[connectionId]
+    if (!pc) {
+      options.onError()
+      return
+    }
+
+    const total = file.size
+    const channel = pc.createDataChannel(file.name)
+    channel.addEventListener('open', async () => {
+      const CHUNK_SIZE = 16 * 1024 // 每块16KB
+      const arrayBuffer = await file.arrayBuffer()
+
+      try {
+        for (let offset = 0; offset < total; offset += CHUNK_SIZE) {
+          const chunk = arrayBuffer.slice(offset, offset + CHUNK_SIZE)
+          channel.send(chunk)
+        }
+
+        options.onFinish()
+      }
+      catch (e: any) {
+        console.error(e)
+        options.onError()
+      }
+      finally {
+        channel.close()
+      }
+    })
   }
 }

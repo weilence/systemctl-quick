@@ -17,15 +17,22 @@ onUnmounted(async () => {
   <div class="flex gap-4">
     <n-list class="flex-auto">
       <template #header>
-        Client
+        <span>
+          Client:
+        </span>
       </template>
       <n-list-item v-for="connectionId of client.connectionIds.value" :key="connectionId">
         <template #suffix>
-          <n-upload :on-before-upload="(data) => client.connect(connectionId, data.file)">
+          <n-button @click="client.connect(connectionId)">
+            连接
+          </n-button>
+          <n-upload :data="{ connectionId }" :custom-request="client.upload">
             <n-button>上传文件</n-button>
           </n-upload>
         </template>
-        {{ connectionId }}
+        <span>
+          {{ connectionId }}
+        </span>
       </n-list-item>
     </n-list>
   </div>
