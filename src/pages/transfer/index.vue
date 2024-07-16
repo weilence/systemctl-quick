@@ -21,17 +21,17 @@ onUnmounted(async () => {
           Client:
         </span>
       </template>
-      <n-list-item v-for="connectionId of client.connectionIds.value" :key="connectionId">
+      <n-list-item v-for="m in client.connectionIds.value" :key="m.id">
         <template #suffix>
-          <n-button @click="client.connect(connectionId)">
+          <n-button @click="client.connect(m.connectionId)">
             连接
           </n-button>
-          <n-upload :data="{ connectionId }" :custom-request="client.upload">
+          <n-upload :data="{ connectionId: m.connectionId }" :custom-request="client.upload">
             <n-button>上传文件</n-button>
           </n-upload>
         </template>
         <span>
-          {{ connectionId }}
+          {{ m.id }}
         </span>
       </n-list-item>
     </n-list>

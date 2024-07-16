@@ -2,17 +2,30 @@ import * as signalR from '@microsoft/signalr'
 import type { UploadCustomRequestOptions } from 'naive-ui'
 import { ref } from 'vue'
 
+interface RoomUser {
+  id: string
+  connectionId: string
+}
+
 export class Client {
   private connection: signalR.HubConnection
-  public connectionIds = ref<string[]>([])
+  public connectionIds = ref<RoomUser[]>([])
   private peers: Record<string, RTCPeerConnection> = {}
 
   constructor() {
+    let user = localStorage.getItem('user')
+    if (!user) {
+      user = crypto.randomUUID()
+      localStorage.setItem('user', user)
+    }
+
     this.connection = new signalR.HubConnectionBuilder()
-      .withUrl('/api/transfer')
+      .withUrl('/api/transfer', {
+        accessTokenFactory: () => user,
+      })
       .build()
-    this.connection.on('Connections', (connectionIds: string[]) => {
-      this.connectionIds.value = connectionIds.filter(id => id !== this.connection.connectionId)
+    this.connection.on('Connections', (connectionIds: RoomUser[]) => {
+      this.connectionIds.value = connectionIds.filter(m => m.id !== user)
     })
     this.connection.on('Connect', async (connectionId: string, offer: RTCSessionDescriptionInit) => {
       let pc = this.peers[connectionId]
@@ -98,7 +111,7 @@ export class Client {
     this.peers[connectionId] = pc
   }
 
-  upload = (options: UploadCustomRequestOptions) => {
+  upload = async (options: UploadCustomRequestOptions) => {
     const file = options.file.file
     if (!file) {
       options.onError()
@@ -114,24 +127,27 @@ export class Client {
 
     const total = file.size
     const channel = pc.createDataChannel(file.name)
-    channel.addEventListener('open', async () => {
-      const CHUNK_SIZE = 16 * 1024 // 每块16KB
-      const arrayBuffer = await file.arrayBuffer()
+    const CHUNK_SIZE = 64 * 1024
+    let offset = 0
 
-      try {
-        for (let offset = 0; offset < total; offset += CHUNK_SIZE) {
-          const chunk = arrayBuffer.slice(offset, offset + CHUNK_SIZE)
-          channel.send(chunk)
-        }
+    const readSlice = async () => {
+      const slice = await file.slice(offset, offset + CHUNK_SIZE).arrayBuffer()
+      offset += slice.byteLength
+      channel.send(slice)
+    }
 
-        options.onFinish()
+    channel.addEventListener('open', () => {
+      readSlice()
+    })
+
+    channel.addEventListener('bufferedamountlow', () => {
+      if (offset < total) {
+        options.onProgress({ percent: offset / total * 100 })
+        readSlice()
       }
-      catch (e: any) {
-        console.error(e)
-        options.onError()
-      }
-      finally {
+      else if (channel.bufferedAmount === 0) {
         channel.close()
+        options.onFinish()
       }
     })
   }
