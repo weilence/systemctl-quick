@@ -1,16 +1,19 @@
 import * as signalR from '@microsoft/signalr'
-import type { UploadCustomRequestOptions } from 'naive-ui'
+import { type UploadCustomRequestOptions, createDiscreteApi } from 'naive-ui'
 import { ref } from 'vue'
 
-interface RoomUser {
+interface User {
   id: string
   connectionId: string
+  status?: string
+  pc?: RTCPeerConnection
 }
 
 export class Client {
   private connection: signalR.HubConnection
-  public connectionIds = ref<RoomUser[]>([])
-  private peers: Record<string, RTCPeerConnection> = {}
+
+  public users = ref<Record<string, User>>({})
+  public currentUser = ref('')
 
   constructor() {
     let user = localStorage.getItem('user')
@@ -24,13 +27,36 @@ export class Client {
         accessTokenFactory: () => user,
       })
       .build()
-    this.connection.on('Connections', (connectionIds: RoomUser[]) => {
-      this.connectionIds.value = connectionIds.filter(m => m.id !== user)
+
+    this.currentUser.value = user
+
+    this.connection.on('Connections', (users: User[]) => {
+      for (const item of users) {
+        if (item.id === this.currentUser.value)
+          continue
+
+        let user = this.users.value[item.id]
+        if (!user) {
+          user = item
+          this.users.value[item.id] = user
+        }
+        else {
+          user.connectionId = item.connectionId
+        }
+      }
     })
-    this.connection.on('Connect', async (connectionId: string, offer: RTCSessionDescriptionInit) => {
-      let pc = this.peers[connectionId]
-      if (!pc) {
-        pc = new RTCPeerConnection({
+
+    const { message } = createDiscreteApi(['message'])
+
+    this.connection.on('Connect', async (userId: string, offer: RTCSessionDescriptionInit) => {
+      const user = this.users.value[userId]
+      if (!user) {
+        message.error('User not found')
+        return
+      }
+
+      if (!user.pc) {
+        const pc = new RTCPeerConnection({
           iceServers: [{
             urls: 'stun:stun.l.google.com:19302',
           }],
@@ -58,23 +84,29 @@ export class Client {
             channel.close()
           })
         })
-        this.peers[connectionId] = pc
+
+        user.pc = pc
       }
 
-      await pc.setRemoteDescription(offer)
-      const answer = await pc.createAnswer()
-      await pc.setLocalDescription(answer)
+      await user.pc.setRemoteDescription(offer)
+      const answer = await user.pc.createAnswer()
+      await user.pc.setLocalDescription(answer)
 
       return answer
     })
-    this.connection.on('IceCandidate', async (connectionId: string, candidate: RTCIceCandidate) => {
-      const peer = this.peers[connectionId]
-      if (!peer) {
-        console.error('Peer not found with connectionId:', connectionId)
+    this.connection.on('IceCandidate', async (userId: string, candidate: RTCIceCandidate) => {
+      const user = this.users.value[userId]
+      if (!user) {
+        message.error('User not found')
         return
       }
 
-      peer.addIceCandidate(candidate)
+      if (!user.pc) {
+        message.error('PeerConnection not found')
+        return
+      }
+
+      user.pc.addIceCandidate(candidate)
     })
   }
 
@@ -86,47 +118,70 @@ export class Client {
     await this.connection.stop()
   }
 
-  connect(connectionId: string) {
-    let pc = this.peers[connectionId]
-    if (pc)
+  connect(userId: string) {
+    const { message } = createDiscreteApi(['message'])
+
+    const user = this.users.value[userId]
+    if (!user) {
+      message.error('User not found')
+      return
+    }
+
+    if (user.pc)
       return
 
-    pc = new RTCPeerConnection({
+    const pc = new RTCPeerConnection({
       iceServers: [{
         urls: 'stun:stun.l.google.com:19302',
       }],
     })
     pc.addEventListener('icecandidate', async (event) => {
       if (event.candidate)
-        this.connection.send('IceCandidate', connectionId, event.candidate)
+        this.connection.send('IceCandidate', userId, event.candidate)
     })
+
+    pc.addEventListener('connectionstatechange', () => {
+      user.status = pc.connectionState
+    })
+
     pc.addEventListener('negotiationneeded', async () => {
       const offer = await pc.createOffer()
       await pc.setLocalDescription(offer)
 
-      const answer = await this.connection.invoke<RTCSessionDescriptionInit>('Connect', connectionId, offer)
+      const answer = await this.connection.invoke<RTCSessionDescriptionInit>('Connect', userId, offer)
       await pc.setRemoteDescription(answer)
     })
 
-    this.peers[connectionId] = pc
+    user.pc = pc
   }
 
   upload = async (options: UploadCustomRequestOptions) => {
+    const { message } = createDiscreteApi(['message'])
+
     const file = options.file.file
     if (!file) {
+      message.error('File not found')
       options.onError()
       return
     }
 
-    const connectionId = (options.data as any).connectionId as string
-    const pc = this.peers[connectionId]
-    if (!pc) {
+    const userId = (options.data as any).userId as string
+
+    const user = this.users.value[userId]
+    if (!user) {
+      message.error('User not found')
+      options.onError()
+      return
+    }
+
+    if (!user.pc) {
+      message.error('PeerConnection not found')
       options.onError()
       return
     }
 
     const total = file.size
-    const channel = pc.createDataChannel(file.name)
+    const channel = user.pc.createDataChannel(file.name)
     const CHUNK_SIZE = 64 * 1024
     let offset = 0
 

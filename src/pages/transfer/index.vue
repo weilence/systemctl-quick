@@ -18,20 +18,20 @@ onUnmounted(async () => {
     <n-list class="flex-auto">
       <template #header>
         <span>
-          Client:
+          Client: {{ client.currentUser.value }}
         </span>
       </template>
-      <n-list-item v-for="m in client.connectionIds.value" :key="m.id">
+      <n-list-item v-for="m in client.users.value" :key="m.id">
         <template #suffix>
-          <n-button @click="client.connect(m.connectionId)">
+          <n-button @click="client.connect(m.id)">
             连接
           </n-button>
-          <n-upload :data="{ connectionId: m.connectionId }" :custom-request="client.upload">
+          <n-upload :data="{ userId: m.id }" :custom-request="client.upload">
             <n-button>上传文件</n-button>
           </n-upload>
         </template>
         <span>
-          {{ m.id }}
+          {{ m.id }} <n-tag v-if="m.status">{{ m.status }}</n-tag>
         </span>
       </n-list-item>
     </n-list>
