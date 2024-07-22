@@ -102,6 +102,10 @@ export class Client {
   }
 
   async stop() {
+    for (const user of Object.values(this.users.value)) {
+      user.channel?.close()
+      user.pc?.close()
+    }
     await this.connection.stop()
   }
 
