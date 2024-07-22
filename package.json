@@ -16,6 +16,7 @@
     "@microsoft/signalr": "^8.0.0",
     "@vueuse/core": "^10.9.0",
     "naive-ui": "^2.38.1",
+    "uuid": "^10.0.0",
     "vue": "^3.4.21",
     "vue-router": "^4.3.0"
   },
@@ -23,6 +24,7 @@
     "@antfu/eslint-config": "^2.8.3",
     "@iconify-json/carbon": "^1.1.31",
     "@types/node": "^20.11.30",
+    "@types/uuid": "^10.0.0",
     "@unocss/eslint-plugin": "^0.58.6",
     "@unocss/reset": "^0.58.6",
     "@vitejs/plugin-vue": "^5.0.4",

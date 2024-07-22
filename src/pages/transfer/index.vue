@@ -23,15 +23,15 @@ onUnmounted(async () => {
       </template>
       <n-list-item v-for="m in client.users.value" :key="m.id">
         <template #suffix>
-          <n-button @click="client.connect(m.id)">
+          <n-button v-if="m.connectionState !== 'connected'" @click="client.connect(m.id)">
             连接
           </n-button>
-          <n-upload :data="{ userId: m.id }" :custom-request="client.upload">
+          <n-upload v-else :data="{ userId: m.id }" :custom-request="client.upload">
             <n-button>上传文件</n-button>
           </n-upload>
         </template>
         <span>
-          {{ m.id }} <n-tag v-if="m.status">{{ m.status }}</n-tag>
+          {{ m.id }} <n-tag type="primary">{{ m.status }}</n-tag> <n-tag v-if="m.connectionState" type="info">{{ m.connectionState }}</n-tag>
         </span>
       </n-list-item>
     </n-list>
