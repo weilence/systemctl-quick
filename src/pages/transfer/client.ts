@@ -1,5 +1,5 @@
 import * as signalR from '@microsoft/signalr'
-import { type UploadCustomRequestOptions, createDiscreteApi } from 'naive-ui'
+import { type UploadCustomRequestOptions, createDiscreteApi, useModal } from 'naive-ui'
 import { v4 as uuidv4 } from 'uuid'
 import { ref } from 'vue'
 
@@ -12,10 +12,19 @@ interface User {
   channel?: RTCDataChannel
 }
 
+interface RoomInfo {
+  name: string
+  users: Array<{
+    id: string
+    connectionId: string
+  }>
+}
+
 export class Client {
   private connection: signalR.HubConnection
 
   public users = ref<Record<string, User>>({})
+  public rooms = ref<RoomInfo[]>([])
   public currentUser = ref('')
 
   constructor() {
@@ -33,24 +42,34 @@ export class Client {
 
     this.currentUser.value = user
 
-    this.connection.on('Connections', (users: User[]) => {
-      for (const item of users) {
+    this.connection.on('Connections', (roomInfo: RoomInfo) => {
+      const room = this.rooms.value.find(item => item.name === roomInfo.name)
+      if (!room)
+        this.rooms.value.push(roomInfo)
+      else
+        room.users = roomInfo.users
+
+      for (const item of roomInfo.users) {
         if (item.id === this.currentUser.value)
           continue
 
         let user = this.users.value[item.id]
         if (!user) {
-          user = item
+          user = {
+            id: item.id,
+            connectionId: item.connectionId,
+            status: 'online',
+          }
           this.users.value[item.id] = user
         }
         else {
           user.connectionId = item.connectionId
+          user.status = 'online'
         }
-        user.status = 'online'
       }
 
       for (const id in this.users.value) {
-        if (!users.find(item => item.id === id)) {
+        if (!roomInfo.users.find(item => item.id === id)) {
           const user = this.users.value[id]
           user.connectionState = ''
           user.channel?.close()
@@ -107,6 +126,15 @@ export class Client {
       user.pc?.close()
     }
     await this.connection.stop()
+  }
+
+  joinRoom(name: string) {
+    this.connection.send('JoinRoom', name)
+  }
+
+  leaveRoom(name: string) {
+    this.connection.send('LeaveRoom', name)
+    this.rooms.value = this.rooms.value.filter(item => item.name !== name)
   }
 
   connect(userId: string) {
