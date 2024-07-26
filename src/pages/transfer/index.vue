@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted, ref } from 'vue'
-import type { FormInst } from 'naive-ui'
+import { useMessage } from 'naive-ui'
+import JoinRoomModal from './components/JoinRoomModal.vue'
 import { Client } from './client'
 
 const client = new Client()
@@ -13,24 +14,19 @@ onUnmounted(async () => {
   await client.stop()
 })
 
-const showModal = ref(false)
-const formValue = ref({
-  name: '',
-})
-const formRef = ref<FormInst | null>(null)
-const rules = {
-  name: {
-    required: true,
-    trigger: ['blur', 'input'],
-  },
-}
+const joinRoomModal = ref(false)
 
-async function joinRoom() {
-  await formRef.value?.validate()
-  client.joinRoom(formValue.value.name)
-  showModal.value = false
-  formValue.value.name = ''
-  formRef.value?.restoreValidation()
+const message = useMessage()
+
+async function joinRoom(name: string, password: string) {
+  try {
+    await client.joinRoom(name, password)
+    message.success('加入房间成功')
+    joinRoomModal.value = false
+  }
+  catch (err: any) {
+    message.error(err.message)
+  }
 }
 </script>
 
@@ -40,7 +36,7 @@ async function joinRoom() {
       <span>
         Client: {{ client.currentUser.value }}
       </span>
-      <n-button @click="showModal = true">
+      <n-button @click="joinRoomModal = true">
         进入房间
       </n-button>
     </div>
@@ -48,6 +44,9 @@ async function joinRoom() {
       <n-list class="flex-auto">
         <template #header>
           <span>{{ r.name }}</span>
+          <n-button>
+            设置密码
+          </n-button>
           <n-button @click="client.leaveRoom(r.name)">
             离开房间
           </n-button>
@@ -69,31 +68,8 @@ async function joinRoom() {
         </div>
       </n-list>
     </n-card>
-    <n-modal v-model:show="showModal">
-      <n-card
-        style="width: 600px"
-        title="进入房间"
-        preset="card"
-        closable
-        @close="showModal = false"
-      >
-        <n-form
-          ref="formRef" inline label-placement="left" label-width="auto" :model="formValue" :rules="rules"
-        >
-          <n-form-item label="房间名" path="name">
-            <n-input v-model:value="formValue.name" placeholder="请输入房间名" />
-          </n-form-item>
-        </n-form>
-        <template #footer>
-          <div class="flex justify-end">
-            <n-button type="primary" @click="joinRoom()">
-              进入
-            </n-button>
-          </div>
-        </template>
-      </n-card>
-    </n-modal>
   </div>
+  <JoinRoomModal :show="joinRoomModal" @join-room="joinRoom" />
 </template>
 
 <route lang="json">

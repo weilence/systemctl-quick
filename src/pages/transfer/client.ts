@@ -1,5 +1,5 @@
 import * as signalR from '@microsoft/signalr'
-import { type UploadCustomRequestOptions, createDiscreteApi, useModal } from 'naive-ui'
+import { type UploadCustomRequestOptions, createDiscreteApi } from 'naive-ui'
 import { v4 as uuidv4 } from 'uuid'
 import { ref } from 'vue'
 
@@ -128,12 +128,12 @@ export class Client {
     await this.connection.stop()
   }
 
-  joinRoom(name: string) {
-    this.connection.send('JoinRoom', name)
+  async joinRoom(name: string, password: string) {
+    await this.connection.invoke('JoinRoom', name, password)
   }
 
-  leaveRoom(name: string) {
-    this.connection.send('LeaveRoom', name)
+  async leaveRoom(name: string) {
+    await this.connection.invoke('LeaveRoom', name)
     this.rooms.value = this.rooms.value.filter(item => item.name !== name)
   }
 
