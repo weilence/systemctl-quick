@@ -137,6 +137,10 @@ export class Client {
     this.rooms.value = this.rooms.value.filter(item => item.name !== name)
   }
 
+  async setPassword(roomId: string, password: string) {
+    await this.connection.invoke('SetPassword', roomId, password)
+  }
+
   connect(userId: string) {
     const { message } = createDiscreteApi(['message'])
 
