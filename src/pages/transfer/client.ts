@@ -38,6 +38,7 @@ export class Client {
       .withUrl('/api/transfer', {
         accessTokenFactory: () => user,
       })
+      .withAutomaticReconnect()
       .build()
 
     this.currentUser.value = user
