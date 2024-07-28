@@ -36,17 +36,17 @@ async function submit() {
 </script>
 
 <template>
-  <n-form ref="formRef" inline label-placement="left" label-width="auto" :rules="rules" :model="formValue">
+  <n-form ref="formRef" label-placement="left" label-width="auto" :rules="rules" :model="formValue">
     <n-form-item label="密码" path="password">
       <n-input v-model:value="formValue.password" type="password" placeholder="请输入密码" />
     </n-form-item>
     <n-form-item label="确认密码" path="confirmPassword">
       <n-input v-model:value="formValue.confirmPassword" type="password" placeholder="请再次输入密码" />
     </n-form-item>
-    <n-form-item>
+    <div class="flex justify-end">
       <n-button type="primary" @click="submit">
         确定
       </n-button>
-    </n-form-item>
+    </div>
   </n-form>
 </template>
