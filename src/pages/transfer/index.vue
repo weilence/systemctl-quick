@@ -1,5 +1,5 @@
 <script setup lang="tsx">
-import { onMounted, onUnmounted } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useMessage, useModal } from 'naive-ui'
 import JoinRoomModal from './components/JoinRoomModal.vue'
 import { Client } from './client'
@@ -63,6 +63,27 @@ function setPassword(roomId: string) {
     ),
   })
 }
+
+function qrcode(roomId: string) {
+  const password = ref('')
+  const url = computed(() => {
+    return `${window.location.href}?roomId=${roomId}&password=${password.value}`
+  })
+  modal.create({
+    title: '二维码',
+    style: {
+      width: '600px',
+    },
+    preset: 'card',
+    content: () => (
+      <div class="flex flex-col items-center gap-4">
+        <n-qr-code value={url.value} size={200} padding={24} />
+        <span>{ url.value }</span>
+        <n-input v-model:value={password.value} />
+      </div>
+    ),
+  })
+}
 </script>
 
 <template>
@@ -82,6 +103,9 @@ function setPassword(roomId: string) {
             <span>{{ r.name }}</span>
             <n-button type="info" @click="setPassword(r.name)">
               设置密码
+            </n-button>
+            <n-button type="info" @click="qrcode(r.name)">
+              二维码
             </n-button>
             <n-button type="error" @click="client.leaveRoom(r.name)">
               离开房间
