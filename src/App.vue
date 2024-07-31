@@ -1,12 +1,23 @@
-<script setup lang="ts">
+<script setup lang="tsx">
+import type { MenuProps } from 'naive-ui'
 import { darkTheme } from 'naive-ui'
 import { useRoute, useRouter } from 'vue-router'
 import { isDark } from './composables'
 
 const route = useRoute()
-
 const router = useRouter()
-const routes = router.getRoutes().filter(m => m.meta?.menu).sort((a, b) => a.meta.index! - b.meta.index!)
+
+const menus = router.getRoutes().filter(m => m.meta?.menu).sort((a, b) => a.meta.index! - b.meta.index!).map(r => ({
+  label: () => <router-link to={r.path}>{r.meta.menu}</router-link>,
+  key: r.path,
+}))
+
+type MenuThemeOverrides = NonNullable<MenuProps['themeOverrides']>
+
+const menuThemeOverrides: MenuThemeOverrides = {
+  itemHeight: '52px',
+  fontSize: '18px',
+}
 </script>
 
 <template>
@@ -17,11 +28,7 @@ const routes = router.getRoutes().filter(m => m.meta?.menu).sort((a, b) => a.met
           <n-layout>
             <n-layout-header>
               <n-flex :size="0">
-                <router-link v-for="r of routes" :key="r.name" :to="r.path">
-                  <div class="cursor-pointer px-6 py-3 text-lg hover:bg-blue-500" :class="{ 'bg-blue-500/80': route.path === r.path }">
-                    <span>{{ r.meta.menu }}</span>
-                  </div>
-                </router-link>
+                <n-menu :theme-overrides="menuThemeOverrides" :value="route.path" :options="menus" mode="horizontal" />
               </n-flex>
             </n-layout-header>
             <n-layout-content>
