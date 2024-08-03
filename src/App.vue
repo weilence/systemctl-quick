@@ -28,7 +28,7 @@ const menuThemeOverrides: MenuThemeOverrides = {
           <n-layout>
             <n-layout-header>
               <n-flex :size="0">
-                <n-menu :theme-overrides="menuThemeOverrides" :value="route.path" :options="menus" mode="horizontal" />
+                <n-menu :theme-overrides="menuThemeOverrides" :value="route.path" :options="menus" mode="horizontal" responsive />
               </n-flex>
             </n-layout-header>
             <n-layout-content>

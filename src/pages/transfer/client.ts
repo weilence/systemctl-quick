@@ -1,119 +1,89 @@
 import * as signalR from '@microsoft/signalr'
 import { type UploadCustomRequestOptions, createDiscreteApi } from 'naive-ui'
 import { v4 as uuidv4 } from 'uuid'
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
+
+interface Peer {
+  pc?: RTCPeerConnection
+}
 
 interface User {
   id: string
-  connectionId: string
-  status: 'online' | 'offline'
-  connectionState?: string
-  pc?: RTCPeerConnection
-  channel?: RTCDataChannel
-}
-
-interface RoomInfo {
-  name: string
-  users: Array<{
-    id: string
-    connectionId: string
-  }>
+  status?: RTCPeerConnectionState
 }
 
 export class Client {
   private connection: signalR.HubConnection
+  private peers: Record<string, Peer> = {}
+  private neighborUsers = ref<User[]>([])
+  private qrcodeUsers = ref<User[]>([])
+  public currentUserId = ref('')
 
-  public users = ref<Record<string, User>>({})
-  public rooms = ref<RoomInfo[]>([])
-  public currentUser = ref('')
+  public users = computed(() => {
+    return this.neighborUsers.value.concat(this.qrcodeUsers.value)
+  })
 
   constructor() {
-    let user = localStorage.getItem('user')
-    if (!user) {
-      user = uuidv4()
-      localStorage.setItem('user', user)
+    let userId = localStorage.getItem('user')
+    if (!userId) {
+      userId = uuidv4()
+      localStorage.setItem('user', userId)
     }
+    this.currentUserId.value = userId
 
     this.connection = new signalR.HubConnectionBuilder()
-      .withUrl('/api/transfer', {
-        accessTokenFactory: () => user,
+      .withUrl('/hub/transfer', {
+        accessTokenFactory: () => userId,
       })
       .withAutomaticReconnect()
       .build()
 
-    this.currentUser.value = user
-
-    this.connection.on('Connections', (roomInfo: RoomInfo) => {
-      const room = this.rooms.value.find(item => item.name === roomInfo.name)
-      if (!room)
-        this.rooms.value.push(roomInfo)
-      else
-        room.users = roomInfo.users
-
-      for (const item of roomInfo.users) {
-        if (item.id === this.currentUser.value)
+    this.connection.on('Users', (users: User[]) => {
+      const newUsers = []
+      for (const user of users) {
+        if (user.id === userId)
           continue
 
-        let user = this.users.value[item.id]
-        if (!user) {
-          user = {
-            id: item.id,
-            connectionId: item.connectionId,
-            status: 'online',
-          }
-          this.users.value[item.id] = user
-        }
-        else {
-          user.connectionId = item.connectionId
-          user.status = 'online'
-        }
+        if (this.qrcodeUsers.value.find(m => m.id === user.id))
+          continue
+
+        newUsers.push(user)
       }
 
-      for (const id in this.users.value) {
-        if (!roomInfo.users.find(item => item.id === id)) {
-          const user = this.users.value[id]
-          user.connectionState = ''
-          user.channel?.close()
-          user.channel = undefined
-          user.pc?.close()
-          user.pc = undefined
-          user.status = 'offline'
-        }
-      }
+      this.neighborUsers.value = newUsers
     })
 
-    const { message } = createDiscreteApi(['message'])
-
     this.connection.on('Connect', async (userId: string, offer: RTCSessionDescriptionInit) => {
-      const user = this.users.value[userId]
-      if (!user) {
-        message.error('User not found')
-        throw new Error('User not found')
+      let peer = this.peers[userId]
+      if (!peer) {
+        peer = {}
+        this.peers[userId] = peer
       }
 
-      if (!user.pc)
-        user.pc = createPeerConnection(this.connection, user)
+      if (!peer.pc) {
+        const user = this.users.value.find(m => m.id === userId)
+        if (!user)
+          throw new Error('User not found')
 
-      await user.pc.setRemoteDescription(offer)
-      const answer = await user.pc.createAnswer()
-      await user.pc.setLocalDescription(answer)
+        peer.pc = createPeerConnection(this.connection, user)
+      }
+
+      await peer.pc.setRemoteDescription(offer)
+      const answer = await peer.pc.createAnswer()
+      await peer.pc.setLocalDescription(answer)
 
       return answer
     })
 
     this.connection.on('IceCandidate', async (userId: string, candidate: RTCIceCandidate) => {
-      const user = this.users.value[userId]
-      if (!user) {
-        message.error('User not found')
-        return
-      }
+      const peer = this.peers[userId]
+      if (!peer)
+        throw new Error('Peer not found')
 
-      if (!user.pc) {
-        message.error('PeerConnection not found')
-        return
-      }
+      if (!peer.pc)
+        throw new Error('PeerConnection not found')
 
-      user.pc.addIceCandidate(candidate)
+      peer.pc.addIceCandidate(candidate)
     })
   }
 
@@ -122,46 +92,10 @@ export class Client {
   }
 
   async stop() {
-    for (const user of Object.values(this.users.value)) {
-      user.channel?.close()
-      user.pc?.close()
-    }
+    for (const peer of Object.values(this.peers))
+      peer.pc?.close()
+
     await this.connection.stop()
-  }
-
-  async joinRoom(name: string, password: string) {
-    await this.connection.invoke('JoinRoom', name, password)
-  }
-
-  async leaveRoom(name: string) {
-    await this.connection.invoke('LeaveRoom', name)
-    this.rooms.value = this.rooms.value.filter(item => item.name !== name)
-  }
-
-  async setPassword(roomId: string, password: string) {
-    await this.connection.invoke('SetPassword', roomId, password)
-  }
-
-  connect(userId: string) {
-    const { message } = createDiscreteApi(['message'])
-
-    const user = this.users.value[userId]
-    if (!user) {
-      message.error('User not found')
-      return
-    }
-
-    if (user.channel) {
-      message.error('DataChannel already exists')
-      return
-    }
-
-    const pc = createPeerConnection(this.connection, user)
-    const channel = pc.createDataChannel('fileChannel')
-    channel.addEventListener('message', createMessageHandler())
-
-    user.pc = pc
-    user.channel = channel
   }
 
   upload = async (options: UploadCustomRequestOptions) => {
@@ -175,51 +109,69 @@ export class Client {
     }
 
     const userId = (options.data as any).userId as string
-
-    const user = this.users.value[userId]
+    const user = this.users.value.find(m => m.id === userId)
     if (!user) {
       message.error('User not found')
       options.onError()
       return
     }
 
-    const channel = user.channel
-    if (!channel) {
-      message.error('DataChannel not found')
-      options.onError()
-      return
+    let peer = this.peers[userId]
+    if (!peer) {
+      peer = {}
+      this.peers[userId] = peer
     }
+
+    let pc = peer.pc
+    if (!pc) {
+      pc = createPeerConnection(this.connection, user)
+      peer.pc = pc
+    }
+
+    const channel = pc.createDataChannel('fileChannel')
+    channel.addEventListener('message', createMessageHandler())
 
     const total = file.size
     const CHUNK_SIZE = 64 * 1024
     let offset = 0
 
-    const readSlice = async () => {
-      const slice = await file.slice(offset, offset + CHUNK_SIZE).arrayBuffer()
-      offset += slice.byteLength
-      channel.send(slice)
-    }
-
-    const bufferedamountlow = () => {
+    const bufferedamountlow = async () => {
       if (offset < total) {
         options.onProgress({ percent: offset / total * 100 })
-        readSlice()
+        const slice = await file.slice(offset, offset + CHUNK_SIZE).arrayBuffer()
+        offset += slice.byteLength
+        channel.send(slice)
+        if (offset === total) {
+          channel.send(JSON.stringify({
+            name: file.name,
+            action: 'end',
+          }))
+        }
       }
       else if (channel.bufferedAmount === 0) {
         options.onFinish()
-        channel.send(JSON.stringify({
-          name: file.name,
-          action: 'end',
-        }))
-        channel.removeEventListener('bufferedamountlow', bufferedamountlow)
       }
     }
 
     channel.addEventListener('bufferedamountlow', bufferedamountlow)
-    channel.send(JSON.stringify({
-      name: file.name,
-      action: 'begin',
-    }))
+    channel.addEventListener('open', () => {
+      channel.send(JSON.stringify({
+        name: file.name,
+        action: 'begin',
+      }))
+    })
+  }
+
+  public async addQrcodeUser(userId: string) {
+    if (this.users.value.find(m => m.id === userId)) {
+      const { message } = createDiscreteApi(['message'])
+      message.error('User already exists')
+      return
+    }
+
+    this.qrcodeUsers.value.push({
+      id: userId,
+    })
   }
 }
 
@@ -232,7 +184,6 @@ function createPeerConnection(connection: signalR.HubConnection, user: User) {
   pc.addEventListener('datachannel', (event) => {
     const channel = event.channel
     channel.addEventListener('message', createMessageHandler())
-    user.channel = channel
   })
 
   pc.addEventListener('icecandidate', async (event) => {
@@ -244,7 +195,7 @@ function createPeerConnection(connection: signalR.HubConnection, user: User) {
     if (pc.connectionState === 'disconnected')
       pc.restartIce()
 
-    user.connectionState = pc.connectionState
+    user.status = pc.connectionState
   })
 
   pc.addEventListener('negotiationneeded', async () => {
@@ -271,18 +222,13 @@ function createMessageHandler() {
       }
       else if (obj.action === 'end') {
         const blob = new Blob(chunk)
-        const reader = new FileReader()
 
-        reader.addEventListener('load', () => {
-          const url = reader.result as string
-          const a = document.createElement('a')
-          a.href = url
-          a.download = obj.name
-          a.click()
-          URL.revokeObjectURL(url)
-        })
-
-        reader.readAsDataURL(blob)
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = obj.name
+        a.click()
+        URL.revokeObjectURL(url)
       }
       else {
         throw new TypeError('Unknown action')
