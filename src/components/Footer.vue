@@ -18,8 +18,10 @@ import { isDark, toggleDark } from '~/composables'
         title="GitHub"
       />
     </div>
-    <div>
-      <a href="https://beian.miit.gov.cn/" target="_blank">湘ICP备2022003006号-1</a>
+    <div class="flex justify-center">
+      <span class="text-sm text-gray-500">
+        <a href="https://beian.miit.gov.cn/" target="_blank" class="text-gray-500 underline decoration-dotted transition-colors hover:text-gray-400">湘ICP备2022003006号-1</a>
+      </span>
     </div>
   </nav>
 </template>
