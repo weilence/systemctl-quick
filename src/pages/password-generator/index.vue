@@ -15,10 +15,10 @@ const message = useMessage()
 
 // 密码类型选项
 const typeOptions = [
-  { label: '数字', value: 'numbers', icon: 'i-carbon-number' },
-  { label: '小写字母', value: 'lowercase', icon: 'i-carbon-text-font' },
-  { label: '大写字母', value: 'uppercase', icon: 'i-carbon-text-font-style' },
-  { label: '特殊符号', value: 'symbols', icon: 'i-carbon-string-text' },
+  { label: '数字', value: 'numbers', icon: 'i-carbon-character-whole-number' },
+  { label: '小写字母', value: 'lowercase', icon: 'i-carbon-character-lower-case' },
+  { label: '大写字母', value: 'uppercase', icon: 'i-carbon-character-upper-case' },
+  { label: '特殊符号', value: 'symbols', icon: 'i-carbon-text-selection' },
 ]
 
 // 密码强度计算

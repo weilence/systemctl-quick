@@ -23,7 +23,7 @@ const emit = defineEmits(['update:type', 'update:data', 'update:fileList', 'upda
       >
         <n-radio-button value="text">
           <div class="flex items-center gap-1">
-            <div class="i-carbon-text" />
+            <div class="i-carbon-string-text" />
             文本输入
           </div>
         </n-radio-button>

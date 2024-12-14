@@ -24,7 +24,7 @@ const outputEncoding = ref<OutputEncoding>('Hex')
 const modeOptions = [
   { label: '编码转换', value: 'encode', icon: 'i-carbon-code' },
   { label: '哈希计算', value: 'hash', icon: 'i-carbon-data-1' },
-  { label: '加密/解密', value: 'cipher', icon: 'i-carbon-lock' },
+  { label: '加密/解密', value: 'cipher', icon: 'i-carbon-locked' },
 ]
 
 // 添加状态跟踪输出是否过大
