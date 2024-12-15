@@ -2,12 +2,11 @@
 import { ref } from 'vue'
 import { type UploadFileInfo, useMessage } from 'naive-ui'
 import CryptoJS from 'crypto-js'
-import type { InputEncoding, OutputEncoding } from '../utils'
+import type { CipherOption, CryptoAlgorithms, InputEncoding, OutputEncoding } from '../utils'
 import { formatOutput, parseInput, readFileAsText } from '../utils'
-import AlgorithmSelector from './AlgorithmSelector.vue'
-import CipherConfig from './CipherConfig.vue'
 
 const props = defineProps<{
+
   input: {
     type: string
     data: string
@@ -19,37 +18,39 @@ const props = defineProps<{
 
 const emit = defineEmits(['update:output'])
 
-const algorithm = ref('aes')
+const algorithm = ref<CryptoAlgorithms>('AES')
 const key = ref('')
 
 // 加密配置
 const cryptoConfig = ref({
   // AES 配置
-  'aes': {
+  aes: {
     mode: 'CBC' as keyof typeof CryptoJS.mode,
     padding: 'Pkcs7' as keyof typeof CryptoJS.pad,
     iv: '',
     keySize: 256, // 128, 192, 或 256
   },
-  // 3DES 配置
-  'tripledes': {
-    mode: 'CBC' as keyof typeof CryptoJS.mode,
-    padding: 'Pkcs7' as keyof typeof CryptoJS.pad,
-    iv: '',
-  },
-  // RC4 配置
-  'rc4': {
-    dropBytes: 768, // RC4-drop, 默认丢弃前768字节
-  },
-  // Rabbit 配置
-  'rabbit': {
-    iv: '',
-  },
-  // Rabbit Legacy 配置
-  'rabbit-legacy': {
-    iv: '',
-  },
 })
+
+function getConfig(wordArray: CryptoJS.lib.WordArray) {
+  const config: CipherOption = {}
+
+  switch (algorithm.value) {
+    case 'AES': {
+      wordArray.sigBytes = cryptoConfig.value.aes.keySize / 8
+
+      config.mode = CryptoJS.mode[cryptoConfig.value.aes.mode]
+      config.padding = CryptoJS.pad[cryptoConfig.value.aes.padding]
+      if (cryptoConfig.value.aes.iv)
+        config.iv = CryptoJS.enc.Utf8.parse(cryptoConfig.value.aes.iv)
+      break
+    }
+    default:
+      throw new Error('不支持的加密算法')
+  }
+
+  return config
+}
 
 // 加密函数
 function encrypt(wordArray: CryptoJS.lib.WordArray): CryptoJS.lib.WordArray {
@@ -57,65 +58,13 @@ function encrypt(wordArray: CryptoJS.lib.WordArray): CryptoJS.lib.WordArray {
     throw new Error('请输入密钥')
 
   const keyWordArray = CryptoJS.enc.Utf8.parse(key.value)
+  const config = getConfig(wordArray.clone())
 
-  switch (algorithm.value) {
-    case 'aes': {
-      // 确保密钥长度符合要求
-      const adjustedKey = keyWordArray.clone()
-      adjustedKey.sigBytes = cryptoConfig.value.aes.keySize / 8
-
-      const config = {
-        mode: CryptoJS.mode[cryptoConfig.value.aes.mode],
-        padding: CryptoJS.pad[cryptoConfig.value.aes.padding],
-        iv: undefined as CryptoJS.lib.WordArray | undefined,
-      }
-
-      if (cryptoConfig.value.aes.iv)
-        config.iv = CryptoJS.enc.Utf8.parse(cryptoConfig.value.aes.iv)
-
-      return CryptoJS.AES.encrypt(wordArray, adjustedKey, config).ciphertext
-    }
-    case 'tripledes': {
-      const config = {
-        mode: CryptoJS.mode[cryptoConfig.value.tripledes.mode],
-        padding: CryptoJS.pad[cryptoConfig.value.tripledes.padding],
-        iv: undefined as CryptoJS.lib.WordArray | undefined,
-      }
-
-      if (cryptoConfig.value.tripledes.iv)
-        config.iv = CryptoJS.enc.Utf8.parse(cryptoConfig.value.tripledes.iv)
-
-      return CryptoJS.TripleDES.encrypt(wordArray, keyWordArray, config).ciphertext
-    }
-    case 'rc4': {
-      const config = {
-        drop: cryptoConfig.value.rc4.dropBytes,
-      }
-
-      return CryptoJS.RC4.encrypt(wordArray, keyWordArray, config).ciphertext
-    }
-    case 'rabbit': {
-      const config = {
-        iv: undefined as CryptoJS.lib.WordArray | undefined,
-      }
-
-      if (cryptoConfig.value.rabbit.iv)
-        config.iv = CryptoJS.enc.Utf8.parse(cryptoConfig.value.rabbit.iv)
-
-      return CryptoJS.Rabbit.encrypt(wordArray, keyWordArray, config).ciphertext
-    }
-    case 'rabbit-legacy': {
-      const config = {
-        iv: undefined as CryptoJS.lib.WordArray | undefined,
-      }
-
-      if (cryptoConfig.value['rabbit-legacy'].iv)
-        config.iv = CryptoJS.enc.Utf8.parse(cryptoConfig.value['rabbit-legacy'].iv)
-
-      return CryptoJS.RabbitLegacy.encrypt(wordArray, keyWordArray, config).ciphertext
-    }
-    default:
-      throw new Error('不支持的加密算法')
+  try {
+    return CryptoJS[algorithm.value].encrypt(wordArray, keyWordArray, config).ciphertext
+  }
+  catch (error) {
+    throw new Error('加密失败')
   }
 }
 
@@ -125,73 +74,16 @@ function decrypt(wordArray: CryptoJS.lib.WordArray): CryptoJS.lib.WordArray {
     throw new Error('请输入密钥')
 
   const keyWordArray = CryptoJS.enc.Utf8.parse(key.value)
+  const config = getConfig(wordArray.clone())
+  const params = CryptoJS.lib.CipherParams.create({
+    ciphertext: wordArray,
+  })
 
   try {
-    const params = CryptoJS.lib.CipherParams.create({
-      ciphertext: wordArray,
-    })
-
-    switch (algorithm.value) {
-      case 'aes': {
-        const adjustedKey = keyWordArray.clone()
-        adjustedKey.sigBytes = cryptoConfig.value.aes.keySize / 8
-
-        const config = {
-          mode: CryptoJS.mode[cryptoConfig.value.aes.mode],
-          padding: CryptoJS.pad[cryptoConfig.value.aes.padding],
-          iv: undefined as CryptoJS.lib.WordArray | undefined,
-        }
-
-        if (cryptoConfig.value.aes.iv)
-          config.iv = CryptoJS.enc.Utf8.parse(cryptoConfig.value.aes.iv)
-
-        return CryptoJS.AES.decrypt(params, adjustedKey, config)
-      }
-      case 'tripledes': {
-        const config = {
-          mode: CryptoJS.mode[cryptoConfig.value.tripledes.mode],
-          padding: CryptoJS.pad[cryptoConfig.value.tripledes.padding],
-          iv: undefined as CryptoJS.lib.WordArray | undefined,
-        }
-
-        if (cryptoConfig.value.tripledes.iv)
-          config.iv = CryptoJS.enc.Utf8.parse(cryptoConfig.value.tripledes.iv)
-
-        return CryptoJS.TripleDES.decrypt(params, keyWordArray, config)
-      }
-      case 'rc4': {
-        const config = {
-          drop: cryptoConfig.value.rc4.dropBytes,
-        }
-
-        return CryptoJS.RC4.decrypt(params, keyWordArray, config)
-      }
-      case 'rabbit': {
-        const config = {
-          iv: undefined as CryptoJS.lib.WordArray | undefined,
-        }
-
-        if (cryptoConfig.value.rabbit.iv)
-          config.iv = CryptoJS.enc.Utf8.parse(cryptoConfig.value.rabbit.iv)
-
-        return CryptoJS.Rabbit.decrypt(params, keyWordArray, config)
-      }
-      case 'rabbit-legacy': {
-        const config = {
-          iv: undefined as CryptoJS.lib.WordArray | undefined,
-        }
-
-        if (cryptoConfig.value['rabbit-legacy'].iv)
-          config.iv = CryptoJS.enc.Utf8.parse(cryptoConfig.value['rabbit-legacy'].iv)
-
-        return CryptoJS.RabbitLegacy.decrypt(params, keyWordArray, config)
-      }
-      default:
-        throw new Error('不支持的解密算法')
-    }
+    return CryptoJS[algorithm.value].decrypt(params, keyWordArray, config)
   }
   catch (error) {
-    throw new Error('解密失败，请检查密钥和参数是否正确')
+    throw new Error('解密失败')
   }
 }
 
@@ -218,16 +110,49 @@ async function process(operation: 'encrypt' | 'decrypt') {
     message.error(error.message || '处理失败')
   }
 }
+
+// 支持的加密算法
+const cipherAlgorithms: Array<{ label: string, value: CryptoAlgorithms }> = [
+  { label: 'AES', value: 'AES' },
+]
+
+// 加密模式选项
+const cryptoModes = [
+  { label: 'CBC', value: 'CBC' },
+  { label: 'CFB', value: 'CFB' },
+  { label: 'OFB', value: 'OFB' },
+  { label: 'ECB', value: 'ECB' },
+  { label: 'CTR', value: 'CTR' },
+]
+
+// 填充方式选项
+const paddingModes = [
+  { label: 'PKCS7', value: 'Pkcs7' },
+  { label: 'Zero Padding', value: 'ZeroPadding' },
+  { label: 'No Padding', value: 'NoPadding' },
+]
+
+// AES 密钥长度选项
+const aesKeySizes = [
+  { label: '128位', value: 128 },
+  { label: '192位', value: 192 },
+  { label: '256位', value: 256 },
+]
 </script>
 
 <template>
   <div class="flex flex-col gap-4">
-    <AlgorithmSelector
-      mode="cipher"
-      :algorithm="algorithm"
-      :use-hmac="false"
-      @update:algorithm="val => algorithm = val"
-    />
+    <n-radio-group
+      v-model:value="algorithm"
+    >
+      <n-radio
+        v-for="item in cipherAlgorithms"
+        :key="item.value"
+        :value="item.value"
+      >
+        {{ item.label }}
+      </n-radio>
+    </n-radio-group>
 
     <n-input
       v-model:value="key"
@@ -235,11 +160,33 @@ async function process(operation: 'encrypt' | 'decrypt') {
       placeholder="请输入密钥"
     />
 
-    <CipherConfig
-      :algorithm="algorithm"
-      :config="cryptoConfig"
-      @update:config="val => cryptoConfig = val"
-    />
+    <template v-if="algorithm === 'AES'">
+      <div class="flex flex-col gap-2">
+        <n-select
+          v-model:value="cryptoConfig.aes.mode"
+          :options="cryptoModes"
+          placeholder="选择加密模式"
+          label="加密模式"
+        />
+        <n-select
+          v-model:value="cryptoConfig.aes.padding"
+          :options="paddingModes"
+          placeholder="选择填充方式"
+          label="填充方式"
+        />
+        <n-select
+          v-model:value="cryptoConfig.aes.keySize"
+          :options="aesKeySizes"
+          placeholder="选择密钥长度"
+          label="密钥长度"
+        />
+        <n-input
+          v-model:value="cryptoConfig.aes.iv"
+          placeholder="初始化向量（IV）"
+          label="初始化向量"
+        />
+      </div>
+    </template>
 
     <div class="flex gap-2">
       <n-button type="primary" @click="process('encrypt')">

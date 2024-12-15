@@ -3,6 +3,20 @@ import CryptoJS from 'crypto-js'
 export type InputEncoding = keyof typeof CryptoJS.enc
 export type OutputEncoding = keyof typeof CryptoJS.enc
 
+export type CipherOption = Parameters<typeof CryptoJS.AES.encrypt>[2]
+type CipherHelper = typeof CryptoJS.AES
+type HashHelper = typeof CryptoJS.MD5
+type HmacHasherHelper = typeof CryptoJS.HmacMD5
+export type CryptoAlgorithms = {
+  [K in keyof typeof CryptoJS]: (typeof CryptoJS)[K] extends CipherHelper ? K : never
+}[keyof typeof CryptoJS]
+export type HashAlgorithms = {
+  [K in keyof typeof CryptoJS]: (typeof CryptoJS)[K] extends HashHelper ? K : never
+}[keyof typeof CryptoJS] | 'PBKDF2'
+export type HmacHashAlgorithms = {
+  [K in keyof typeof CryptoJS]: (typeof CryptoJS)[K] extends HmacHasherHelper ? K : never
+}[keyof typeof CryptoJS]
+
 // 将输入字符串转换为 WordArray
 export function parseInput(data: string, encoding: InputEncoding): CryptoJS.lib.WordArray {
   const inputEncoding = CryptoJS.enc[encoding]

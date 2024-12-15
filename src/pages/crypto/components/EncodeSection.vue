@@ -30,7 +30,6 @@ async function process() {
     emit('update:output', formatOutput(inputWordArray, props.outputEncoding))
   }
   catch (error: any) {
-    console.error(error)
     message.error(error.message || '处理失败')
   }
 }
