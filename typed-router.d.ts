@@ -21,6 +21,7 @@ declare module 'vue-router/auto-routes' {
     '/': RouteRecordInfo<'/', '/', Record<never, never>, Record<never, never>>,
     '/[...all]': RouteRecordInfo<'/[...all]', '/:all(.*)', { all: ParamValue<true> }, { all: ParamValue<false> }>,
     '/crypto/': RouteRecordInfo<'/crypto/', '/crypto', Record<never, never>, Record<never, never>>,
+    '/json/': RouteRecordInfo<'/json/', '/json', Record<never, never>, Record<never, never>>,
     '/nginx': RouteRecordInfo<'/nginx', '/nginx', Record<never, never>, Record<never, never>>,
     '/password-generator/': RouteRecordInfo<'/password-generator/', '/password-generator', Record<never, never>, Record<never, never>>,
     '/systemctl/': RouteRecordInfo<'/systemctl/', '/systemctl', Record<never, never>, Record<never, never>>,
